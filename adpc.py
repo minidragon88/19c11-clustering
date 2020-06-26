@@ -134,6 +134,9 @@ def get_minimum_gaussian_groups(densities_distribution, groups):
     results[group] += densities_distribution[i][1]
   return np.where(results == min(results))[0]
 
+def get_cluster_center_of_label(label, cluster_centers_label, cluster_centers):
+  return cluster_centers[cluster_centers_label.index(label)]
+
 """Download data set"""
 
 # Download data set
@@ -188,29 +191,53 @@ cluster_centers = []
 cluster_centers_label = []
 labels = np.zeros((data_set_length,), dtype=np.int)
 current_label = 0
+print(densities_distribution)
+print(groups)
+print(densities_groups)
 # for loop in range(data_set_length):
 for loop in range(data_set_length):
   index_in_raw_data = get_respective_index(loop, densities_argsort)
+  current_point_density = densities[index_in_raw_data]
   neighbor_indexes, neighbor_distances = get_neighbors(all_distances, index_in_raw_data, cut_off_distance)
   neighbors_has_clustered = []
   neighbors_has_clustered_distance = []
   neighbors_density_group = []
+  neighbor_cluster_centers = []
+  neighbor_cluster_centers_densities = []
+  neighbor_cluster_centers_group = []
   for n_count in range(len(neighbor_indexes)):
     neighbor_index_in_sorted = get_respective_index(neighbor_indexes[n_count], densities_argsort)
     if labels[neighbor_index_in_sorted] != 0:
       neighbors_has_clustered.append(neighbor_index_in_sorted)
       neighbors_has_clustered_distance.append(neighbor_distances[n_count])
       neighbors_density_group.append(densities_groups[neighbor_indexes[n_count]])
-  # print(neighbors_density_group)
+      # Prepare data for further process by finding current neighbor's cluster center
+      nbcc = get_cluster_center_of_label(labels[neighbor_index_in_sorted], cluster_centers_label, cluster_centers)
+      neighbor_cluster_centers.append(nbcc)
+      neighbor_cluster_centers_densities.append(densities[get_respective_index(nbcc, densities_argsort)])
+      neighbor_cluster_centers_group.append(densities_groups[get_respective_index(nbcc, densities_argsort)])
+  print("PHUUUUUU")
+  print("Current density" + str(current_point_density))
+  print("Current density group" + str(densities_groups[index_in_raw_data]))
+
+  print(neighbor_cluster_centers)
+  print(neighbor_cluster_centers_densities)
+  print(neighbor_cluster_centers_group)
+  print("============================")
   if len(neighbors_has_clustered) > 0:
     if len(neighbors_has_clustered) == 1:
       labels[loop] = labels[get_respective_index(neighbors_has_clustered[0], densities_argsort)]
-    elif len(neighbors_has_clustered) > 1:
-      continue
+    # All this point's neighbors belong to the same cluster
+    elif len(neighbors_has_clustered) > 1 and len(set(neighbor_cluster_centers)) == 1:
+      labels[loop] = labels[get_respective_index(neighbors_has_clustered[0], densities_argsort)]
+    elif len(neighbors_has_clustered) > 1 and len(set(neighbor_cluster_centers)) > 1 and current_point_density in neighbor_cluster_centers_group:
+      # Merging steps
+      print("Merging")
     else:
       # If there are no comparative neighbor's cluster center with the same gaussian group with current point
       # Then get the cluster center of nearest neighbors and belong to that clusters
       decided_cluster = neighbors_has_clustered[neighbors_has_clustered_distance.index(min(neighbors_has_clustered_distance))]
+      print(decided_cluster)
       labels[loop] = labels[decided_cluster]
   elif (not densities_groups[index_in_raw_data] in minimum_gaussian_groups) and sorted_densities[loop] > 0:
     # No neighbor then promote to cluster center
@@ -220,8 +247,9 @@ for loop in range(data_set_length):
     cluster_centers_label.append(current_label)
     labels[loop] = current_label
   else:
-    # Outlier point, ignore
+    # Outlier point
+    labels[loop] = 0
     continue
 
-print(len(labels))
+print(labels)
 print(len(cluster_centers))
