@@ -141,6 +141,8 @@ def get_cluster_center_of_label(label, cluster_centers_label, cluster_centers):
 
 # Download data set
 raw_data_set = download_data_set('http://cs.joensuu.fi/sipu/datasets/R15.txt')
+# S1
+# raw_data_set = download_data_set('http://cs.joensuu.fi/sipu/datasets/s1.txt')
 
 """Download data, calculate all relevant variables"""
 
@@ -183,7 +185,7 @@ print(get_neighbors(all_distances, 0, cut_off_distance))
 print(raw_data_set[0])
 print(densities_distribution)
 
-Algorithm
+Main Algorithm
 
 # sorted_densities cluster_centers = np.append(cluster_centers, 1)
 data_set_length = len(raw_data_set)
@@ -191,13 +193,11 @@ cluster_centers = []
 cluster_centers_label = []
 labels = np.zeros((data_set_length,), dtype=np.int)
 current_label = 0
-print(densities_distribution)
-print(groups)
-print(densities_groups)
+
 # for loop in range(data_set_length):
 for loop in range(data_set_length):
   index_in_raw_data = get_respective_index(loop, densities_argsort)
-  current_point_density = densities[index_in_raw_data]
+
   neighbor_indexes, neighbor_distances = get_neighbors(all_distances, index_in_raw_data, cut_off_distance)
   neighbors_has_clustered = []
   neighbors_has_clustered_distance = []
@@ -216,28 +216,35 @@ for loop in range(data_set_length):
       neighbor_cluster_centers.append(nbcc)
       neighbor_cluster_centers_densities.append(densities[get_respective_index(nbcc, densities_argsort)])
       neighbor_cluster_centers_group.append(densities_groups[get_respective_index(nbcc, densities_argsort)])
-  print("PHUUUUUU")
-  print("Current density" + str(current_point_density))
-  print("Current density group" + str(densities_groups[index_in_raw_data]))
-
-  print(neighbor_cluster_centers)
-  print(neighbor_cluster_centers_densities)
-  print(neighbor_cluster_centers_group)
-  print("============================")
   if len(neighbors_has_clustered) > 0:
+    # Only one neighbor
     if len(neighbors_has_clustered) == 1:
       labels[loop] = labels[get_respective_index(neighbors_has_clustered[0], densities_argsort)]
     # All this point's neighbors belong to the same cluster
     elif len(neighbors_has_clustered) > 1 and len(set(neighbor_cluster_centers)) == 1:
       labels[loop] = labels[get_respective_index(neighbors_has_clustered[0], densities_argsort)]
-    elif len(neighbors_has_clustered) > 1 and len(set(neighbor_cluster_centers)) > 1 and current_point_density in neighbor_cluster_centers_group:
+    elif len(neighbors_has_clustered) > 1 and len(set(neighbor_cluster_centers)) > 1 and densities_groups[index_in_raw_data] in neighbor_cluster_centers_group:
       # Merging steps
-      print("Merging")
+      winner_cluster_center_index = neighbor_cluster_centers_densities.index(max(neighbor_cluster_centers_densities))
+      winner_cluster_center = neighbor_cluster_centers[winner_cluster_center_index]
+      winner_label = cluster_centers_label[cluster_centers.index(winner_cluster_center)]
+      to_be_removed_centers = set(neighbor_cluster_centers)
+      to_be_removed_centers.remove(winner_cluster_center)
+      to_be_removed_label = []
+      for loser_cluster_center in to_be_removed_centers:
+        index_in_cluster_center = cluster_centers.index(loser_cluster_center)
+        to_be_removed_label.append(cluster_centers_label[index_in_cluster_center])
+        del cluster_centers[index_in_cluster_center]
+        del cluster_centers_label[index_in_cluster_center]
+      for merging_count in range(loop + 1):
+        if labels[merging_count] in to_be_removed_label:
+          labels[merging_count] = winner_label
     else:
       # If there are no comparative neighbor's cluster center with the same gaussian group with current point
       # Then get the cluster center of nearest neighbors and belong to that clusters
+      
+      # First implementation, seems to be wrong
       decided_cluster = neighbors_has_clustered[neighbors_has_clustered_distance.index(min(neighbors_has_clustered_distance))]
-      print(decided_cluster)
       labels[loop] = labels[decided_cluster]
   elif (not densities_groups[index_in_raw_data] in minimum_gaussian_groups) and sorted_densities[loop] > 0:
     # No neighbor then promote to cluster center
@@ -251,5 +258,7 @@ for loop in range(data_set_length):
     labels[loop] = 0
     continue
 
-print(labels)
+
+print(get_distribution(labels))
 print(len(cluster_centers))
+print(len(set(labels)))
