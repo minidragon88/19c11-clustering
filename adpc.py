@@ -103,6 +103,25 @@ def density_groups(densities, densities_distribution, groups):
         result.append(groups[j])
         break
   return np.array(result)
+  
+def get_neighbors(all_distances, current_point_index, cut_off_distance):
+  neighbor_indexes = []
+  neighbor_dinstances = []
+  point_distances = all_distances[current_point_index]
+  for i in range(len(point_distances)):
+    if point_distances[i] < cut_off_distance:
+      if i < current_point_index:
+        neighbor_indexes.append(i)
+      else:
+        neighbor_indexes.append(i + 1)
+      neighbor_dinstances.append(point_distances[i])
+  return (neighbor_indexes, neighbor_dinstances)
+
+def get_index_before_sort(sorted_index, argsort_arr):
+  return argsort_arr[sorted_index]
+
+def get_respective_index(index, argsort_arr):
+  return argsort_arr[index]
 
 """Download data set"""
 
@@ -143,7 +162,32 @@ sorted_desities = sorted_desities[::-1]
 abc = np.array([1,2,3,4,5,6,8,7])
 xxx = abc.argsort()[::-1]
 print(abc)
-abc.sort()
-abc = abc[::-1]
-print(abc)
 print(xxx)
+print(abc)
+yyy = np.array(abc)
+yyy.sort()
+yyy = yyy[::-1]
+print(yyy)
+
+print(abc[get_respective_index(2, xxx)])
+
+print(yyy[get_respective_index(5, xxx)])
+print(abc[7])
+
+# print(all_distances[0])
+print(get_neighbors(all_distances, 0, cut_off_distance))
+# for i in range(600):
+  # print(len(get_neighbors(all_distances, i, cut_off_distance)))
+print(raw_data_set[0])
+print(densities_distribution)
+
+Algorithm
+
+# sorted_desities cluster_centers = np.append(cluster_centers, 1)
+data_set_length = len(raw_data_set)
+cluster_centers = np.array([])
+labels = np.zeros((data_set_length,), dtype=np.int)
+
+for loop in range(data_set_length):
+  index_in_raw_data = get_respective_index(loop, densities_argsort)
+  neighbor_indexes, neighbor_distances = get_neighbors(all_distances, index_in_raw_data, cut_off_distance)
